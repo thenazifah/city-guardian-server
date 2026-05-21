@@ -13,8 +13,20 @@ function isStaffOrAdmin(role) {
   return role === ROLES.STAFF || role === ROLES.ADMIN;
 }
 
+function toIdString(value) {
+  if (value == null) return null;
+  if (typeof value === "string") return value;
+  if (value.toString) return value.toString();
+  return null;
+}
+
 function toPublicIssue(doc) {
   if (!doc) return null;
+
+  const reportedBy = toIdString(
+    doc.reportedBy ?? doc.userId ?? doc.reporterId
+  );
+
   return {
     id: doc._id.toString(),
     title: doc.title,
@@ -25,8 +37,8 @@ function toPublicIssue(doc) {
     location: doc.location,
     address: doc.address ?? null,
     images: doc.images ?? [],
-    reportedBy: doc.reportedBy.toString(),
-    assignedTo: doc.assignedTo ? doc.assignedTo.toString() : null,
+    reportedBy,
+    assignedTo: toIdString(doc.assignedTo),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
     resolvedAt: doc.resolvedAt ?? null,
@@ -113,7 +125,10 @@ async function getIssueById(id, user) {
     throw new ApiError(404, "Issue not found");
   }
 
-  const isOwner = issue.reportedBy.toString() === user.id;
+  const reporterId = toIdString(
+    issue.reportedBy ?? issue.userId ?? issue.reporterId
+  );
+  const isOwner = reporterId === user.id;
   if (!isOwner && !isStaffOrAdmin(user.role)) {
     throw new ApiError(403, "You do not have access to this issue");
   }
