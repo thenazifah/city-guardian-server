@@ -6,7 +6,14 @@ const { ensureUserIndexes } = require("./services/user.service");
 
 async function start() {
   try {
-    initFirebase();
+    if (env.isProduction || env.firebaseConfigured) {
+      initFirebase();
+    } else {
+      console.warn(
+        "Firebase not configured — use POST /api/v1/auth/firebase with email+name (dev only)"
+      );
+    }
+
     await connectDb();
     await ensureUserIndexes();
 

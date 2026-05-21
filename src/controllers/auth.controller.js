@@ -1,12 +1,30 @@
 const authService = require("../services/auth.service");
 const userService = require("../services/user.service");
+const env = require("../config/env");
 const { sendSuccess } = require("../utils/response");
-const { validateFirebaseLogin } = require("../validators/auth.validator");
+const {
+  validateFirebaseLogin,
+  validateDevLogin,
+} = require("../validators/auth.validator");
 
 async function firebaseLogin(req, res) {
-  const { idToken } = validateFirebaseLogin(req.body);
-  const result = await authService.loginWithFirebase(idToken);
-  sendSuccess(res, result, "Login successful");
+  let result;
+
+  if (req.body.idToken) {
+    const { idToken } = validateFirebaseLogin(req.body);
+    result = await authService.loginWithFirebase(idToken);
+    sendSuccess(res, result, "Login successful");
+    return;
+  }
+
+  if (env.isDevelopment) {
+    const payload = validateDevLogin(req.body);
+    result = await authService.loginWithDev(payload);
+    sendSuccess(res, result, "Login successful (dev mode)");
+    return;
+  }
+
+  validateFirebaseLogin(req.body);
 }
 
 async function getMe(req, res) {

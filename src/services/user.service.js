@@ -199,6 +199,42 @@ async function updateUser(id, payload) {
   return toPublicUser(result);
 }
 
+async function updateUserRole(id, role, { requesterId }) {
+  if (!ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid user id");
+  }
+
+  if (!ROLE_LIST.includes(role)) {
+    throw new ApiError(400, `Role must be one of: ${ROLE_LIST.join(", ")}`);
+  }
+
+  if (id === requesterId) {
+    throw new ApiError(403, "You cannot change your own role");
+  }
+
+  const target = await usersCollection().findOne({ _id: new ObjectId(id) });
+  if (!target) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (target.role === ROLES.ADMIN && role !== ROLES.ADMIN) {
+    const adminCount = await usersCollection().countDocuments({
+      role: ROLES.ADMIN,
+    });
+    if (adminCount <= 1) {
+      throw new ApiError(400, "Cannot demote the last admin");
+    }
+  }
+
+  const result = await usersCollection().findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $set: { role, updatedAt: new Date() } },
+    { returnDocument: "after" }
+  );
+
+  return toPublicUser(result);
+}
+
 module.exports = {
   ensureUserIndexes,
   listUsers,
@@ -208,5 +244,6 @@ module.exports = {
   findOrCreateFromFirebase,
   createUser,
   updateUser,
+  updateUserRole,
   toPublicUser,
 };

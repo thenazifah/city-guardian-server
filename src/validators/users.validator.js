@@ -38,11 +38,18 @@ function validateCreateUser(body) {
 }
 
 function validateUpdateUser(body) {
-  const allowed = ["displayName", "phone", "avatarUrl", "isActive", "role"];
+  const allowed = ["displayName", "phone", "avatarUrl", "isActive"];
   const hasField = allowed.some((key) => body[key] !== undefined);
 
   if (!hasField) {
     throw new ApiError(400, `Provide at least one of: ${allowed.join(", ")}`);
+  }
+
+  if (body.role !== undefined) {
+    throw new ApiError(
+      400,
+      "Use PATCH /users/:id/role to change roles (admin only)"
+    );
   }
 
   const errors = [];
@@ -53,18 +60,32 @@ function validateUpdateUser(body) {
     }
   }
 
-  if (body.role !== undefined && !ROLE_LIST.includes(body.role)) {
-    errors.push(`role must be one of: ${ROLE_LIST.join(", ")}`);
-  }
-
   if (errors.length > 0) {
     throw new ApiError(400, errors.join("; "));
   }
 
-  return body;
+  return {
+    displayName: body.displayName,
+    phone: body.phone,
+    avatarUrl: body.avatarUrl,
+    isActive: body.isActive,
+  };
+}
+
+function validateUpdateRole(body) {
+  if (!body.role || typeof body.role !== "string") {
+    throw new ApiError(400, "role is required");
+  }
+
+  if (!ROLE_LIST.includes(body.role)) {
+    throw new ApiError(400, `role must be one of: ${ROLE_LIST.join(", ")}`);
+  }
+
+  return { role: body.role };
 }
 
 module.exports = {
   validateCreateUser,
   validateUpdateUser,
+  validateUpdateRole,
 };

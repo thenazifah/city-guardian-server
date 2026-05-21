@@ -6,6 +6,10 @@ const env = require("./env");
 let initialized = false;
 
 function initFirebase() {
+  if (!env.firebaseConfigured) {
+    throw new Error("Firebase is not configured");
+  }
+
   if (initialized) {
     return admin;
   }

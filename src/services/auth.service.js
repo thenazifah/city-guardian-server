@@ -29,6 +29,13 @@ function verifyAccessToken(token) {
 }
 
 async function loginWithFirebase(idToken) {
+  if (!env.firebaseConfigured) {
+    throw new ApiError(
+      503,
+      "Firebase is not configured. Use email+name login in development."
+    );
+  }
+
   let decoded;
   try {
     decoded = await getAuth().verifyIdToken(idToken);
@@ -55,8 +62,36 @@ async function loginWithFirebase(idToken) {
   return { accessToken, user };
 }
 
+/**
+ * Development-only: create/link user by email without Firebase.
+ * Uses synthetic firebaseUid `dev:<email>`.
+ */
+async function loginWithDev({ email, displayName }) {
+  if (env.isProduction) {
+    throw new ApiError(403, "Dev login is disabled in production");
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const uid = `dev:${normalizedEmail}`;
+
+  const user = await userService.findOrCreateFromFirebase({
+    uid,
+    email: normalizedEmail,
+    displayName,
+    avatarUrl: null,
+  });
+
+  if (!user.isActive) {
+    throw new ApiError(403, "Account is disabled");
+  }
+
+  const accessToken = signAccessToken(user);
+  return { accessToken, user, devMode: true };
+}
+
 module.exports = {
   signAccessToken,
   verifyAccessToken,
   loginWithFirebase,
+  loginWithDev,
 };
