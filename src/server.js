@@ -3,6 +3,7 @@ const env = require("./config/env");
 const { connectDb } = require("./config/db");
 const { initFirebase } = require("./config/firebase");
 const { ensureUserIndexes } = require("./services/user.service");
+const { ensureIssueIndexes } = require("./services/issue.service");
 
 async function start() {
   try {
@@ -16,6 +17,7 @@ async function start() {
 
     await connectDb();
     await ensureUserIndexes();
+    await ensureIssueIndexes();
 
     app.listen(env.port, () => {
       console.log(`Server running on port ${env.port}`);
