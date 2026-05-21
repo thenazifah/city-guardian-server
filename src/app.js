@@ -1,6 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 const { isDbConnected } = require("./config/db");
+const apiRoutes = require("./routes");
+const {
+  notFoundHandler,
+  errorHandler,
+} = require("./middleware/error.middleware");
 
 const app = express();
 
@@ -16,5 +21,10 @@ app.get("/health", (req, res) => {
     db,
   });
 });
+
+app.use("/api/v1", apiRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 module.exports = app;
