@@ -45,7 +45,7 @@ router.get(
   asyncHandler(usersController.getUser)
 );
 
-router.patch("/:id", asyncHandler(usersController.updateUser));
+router.patch("/:id" , asyncHandler(usersController.updateUser));
 
 router.delete(
   "/:id",
