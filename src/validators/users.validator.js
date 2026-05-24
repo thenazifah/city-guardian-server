@@ -38,7 +38,7 @@ function validateCreateUser(body) {
 }
 
 function validateUpdateUser(body) {
-  const allowed = ["displayName", "phone", "avatarUrl", "isActive"];
+  const allowed = ["displayName", "phone", "avatarUrl"];
   const hasField = allowed.some((key) => body[key] !== undefined);
 
   if (!hasField) {
@@ -68,7 +68,75 @@ function validateUpdateUser(body) {
     displayName: body.displayName,
     phone: body.phone,
     avatarUrl: body.avatarUrl,
-    isActive: body.isActive,
+  };
+}
+
+function validateAdminUpdateUser(body) {
+  const allowed = ["displayName", "phone", "avatarUrl"];
+  const hasField = allowed.some((key) => body[key] !== undefined);
+
+  if (!hasField) {
+    throw new ApiError(400, `Provide at least one of: ${allowed.join(", ")}`);
+  }
+
+  const errors = [];
+
+  if (body.displayName !== undefined) {
+    if (typeof body.displayName !== "string" || body.displayName.trim().length < 2) {
+      errors.push("displayName must be at least 2 characters");
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new ApiError(400, errors.join("; "));
+  }
+
+  return {
+    displayName: body.displayName,
+    phone: body.phone,
+    avatarUrl: body.avatarUrl,
+  };
+}
+
+function validateUpdateStatus(body) {
+  if (body.isActive === undefined || typeof body.isActive !== "boolean") {
+    throw new ApiError(400, "isActive (boolean) is required");
+  }
+  return { isActive: body.isActive };
+}
+
+function validateCreateStaff(body) {
+  const errors = [];
+
+  if (!body.email || typeof body.email !== "string") {
+    errors.push("email is required");
+  } else if (!EMAIL_REGEX.test(body.email.trim())) {
+    errors.push("email must be valid");
+  }
+
+  if (!body.displayName || typeof body.displayName !== "string") {
+    errors.push("displayName is required");
+  } else if (body.displayName.trim().length < 2) {
+    errors.push("displayName must be at least 2 characters");
+  }
+
+  if (!body.password || typeof body.password !== "string") {
+    errors.push("password is required");
+  } else if (body.password.length < 6) {
+    errors.push("password must be at least 6 characters");
+  }
+
+  if (errors.length > 0) {
+    throw new ApiError(400, errors.join("; "));
+  }
+
+  return {
+    email: body.email.trim().toLowerCase(),
+    displayName: body.displayName.trim(),
+    phone: typeof body.phone === "string" ? body.phone.trim() || null : null,
+    avatarUrl:
+      typeof body.avatarUrl === "string" ? body.avatarUrl.trim() || null : null,
+    password: body.password,
   };
 }
 
@@ -87,5 +155,8 @@ function validateUpdateRole(body) {
 module.exports = {
   validateCreateUser,
   validateUpdateUser,
+  validateAdminUpdateUser,
+  validateUpdateStatus,
+  validateCreateStaff,
   validateUpdateRole,
 };

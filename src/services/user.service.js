@@ -199,6 +199,101 @@ async function updateUser(id, payload) {
   return toPublicUser(result);
 }
 
+async function createStaffUser({ email, displayName, phone, avatarUrl, password }) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = await usersCollection().findOne({ email: normalizedEmail });
+
+  if (existing) {
+    throw new ApiError(409, "A user with this email already exists");
+  }
+
+  const env = require("../config/env");
+  let firebaseUid = null;
+
+  if (env.firebaseConfigured) {
+    const { getAuth } = require("../config/firebase");
+    const fbUser = await getAuth().createUser({
+      email: normalizedEmail,
+      password,
+      displayName,
+      photoURL: avatarUrl || undefined,
+    });
+    firebaseUid = fbUser.uid;
+  } else if (!env.isProduction) {
+    firebaseUid = `dev:${normalizedEmail}`;
+  } else {
+    throw new ApiError(
+      503,
+      "Firebase must be configured to create staff accounts in production"
+    );
+  }
+
+  return createUser({
+    firebaseUid,
+    email: normalizedEmail,
+    displayName,
+    role: ROLES.STAFF,
+    phone,
+    avatarUrl,
+    isActive: true,
+  });
+}
+
+async function deleteStaffUser(id, requesterId) {
+  if (!ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid user id");
+  }
+
+  if (id === requesterId) {
+    throw new ApiError(403, "You cannot delete your own account");
+  }
+
+  const target = await usersCollection().findOne({ _id: new ObjectId(id) });
+  if (!target) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (target.role !== ROLES.STAFF) {
+    throw new ApiError(400, "Only staff accounts can be removed from this page");
+  }
+
+  if (target.firebaseUid && !target.firebaseUid.startsWith("dev:")) {
+    try {
+      const env = require("../config/env");
+      if (env.firebaseConfigured) {
+        const { getAuth } = require("../config/firebase");
+        await getAuth().deleteUser(target.firebaseUid);
+      }
+    } catch {
+      // Continue with DB removal if Firebase user is already gone
+    }
+  }
+
+  await usersCollection().deleteOne({ _id: target._id });
+  return { id, deleted: true };
+}
+
+async function updateUserStatus(id, isActive, requesterId) {
+  if (!ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid user id");
+  }
+
+  if (id === requesterId) {
+    throw new ApiError(403, "You cannot change your own account status");
+  }
+
+  const target = await usersCollection().findOne({ _id: new ObjectId(id) });
+  if (!target) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (target.role !== ROLES.CITIZEN) {
+    throw new ApiError(400, "Only citizen accounts can be blocked from this page");
+  }
+
+  return updateUser(id, { isActive });
+}
+
 async function updateUserRole(id, role, { requesterId }) {
   if (!ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid user id");
@@ -243,6 +338,9 @@ module.exports = {
   findByEmail,
   findOrCreateFromFirebase,
   createUser,
+  createStaffUser,
+  deleteStaffUser,
+  updateUserStatus,
   updateUser,
   updateUserRole,
   toPublicUser,

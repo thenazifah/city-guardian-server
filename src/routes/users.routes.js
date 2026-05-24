@@ -15,10 +15,28 @@ router.get(
   asyncHandler(usersController.listUsers)
 );
 
+router.post(
+  "/staff",
+  authorize(ROLES.ADMIN),
+  asyncHandler(usersController.createStaff)
+);
+
 router.patch(
   "/:id/role",
   authorize(ROLES.ADMIN),
   asyncHandler(usersController.updateUserRole)
+);
+
+router.patch(
+  "/:id/status",
+  authorize(ROLES.ADMIN),
+  asyncHandler(usersController.updateUserStatus)
+);
+
+router.patch(
+  "/:id/admin",
+  authorize(ROLES.ADMIN),
+  asyncHandler(usersController.adminUpdateUser)
 );
 
 router.get(
@@ -28,5 +46,11 @@ router.get(
 );
 
 router.patch("/:id", asyncHandler(usersController.updateUser));
+
+router.delete(
+  "/:id",
+  authorize(ROLES.ADMIN),
+  asyncHandler(usersController.deleteStaff)
+);
 
 module.exports = router;

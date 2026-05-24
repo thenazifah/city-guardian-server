@@ -183,11 +183,95 @@ function validateListQuery(query) {
     filters.assignedTo = query.assignedTo;
   }
 
+  if (query.mine !== undefined) {
+    filters.mine = query.mine === "true" || query.mine === true;
+  }
+
   return filters;
+}
+
+function validateCitizenUpdateIssue(body) {
+  const allowed = [
+    "title",
+    "description",
+    "category",
+    "priority",
+    "location",
+    "address",
+    "images",
+  ];
+  const hasField = allowed.some((key) => body[key] !== undefined);
+
+  if (!hasField) {
+    throw new ApiError(400, `Provide at least one of: ${allowed.join(", ")}`);
+  }
+
+  const errors = [];
+  const payload = {};
+
+  if (body.title !== undefined) {
+    if (typeof body.title !== "string" || body.title.trim().length < 3) {
+      errors.push("title must be at least 3 characters");
+    } else {
+      payload.title = body.title.trim();
+    }
+  }
+
+  if (body.description !== undefined) {
+    if (typeof body.description !== "string" || body.description.trim().length < 10) {
+      errors.push("description must be at least 10 characters");
+    } else {
+      payload.description = body.description.trim();
+    }
+  }
+
+  if (body.category !== undefined) {
+    if (!ISSUE_CATEGORIES.includes(body.category)) {
+      errors.push(`category must be one of: ${ISSUE_CATEGORIES.join(", ")}`);
+    } else {
+      payload.category = body.category;
+    }
+  }
+
+  if (body.priority !== undefined) {
+    if (!ISSUE_PRIORITY_LIST.includes(body.priority)) {
+      errors.push(`priority must be one of: ${ISSUE_PRIORITY_LIST.join(", ")}`);
+    } else {
+      payload.priority = body.priority;
+    }
+  }
+
+  if (body.location !== undefined) {
+    try {
+      payload.location = validateLocation(body.location);
+    } catch (err) {
+      if (err instanceof ApiError) errors.push(err.message);
+    }
+  }
+
+  if (body.address !== undefined) {
+    payload.address =
+      typeof body.address === "string" ? body.address.trim() || null : null;
+  }
+
+  if (body.images !== undefined) {
+    try {
+      payload.images = validateImages(body.images);
+    } catch (err) {
+      if (err instanceof ApiError) errors.push(err.message);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new ApiError(400, errors.join("; "));
+  }
+
+  return payload;
 }
 
 module.exports = {
   validateCreateIssue,
   validateUpdateIssue,
+  validateCitizenUpdateIssue,
   validateListQuery,
 };
