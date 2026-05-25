@@ -6,7 +6,7 @@ A comprehensive digital platform designed to bridge the communication gap betwee
 
 ## 🚀 Live Deployment & Credentials
 
-* **Live Site URL:** `https://your-live-site-link.web.app` 
+* **Live Site URL:** `https://city-guardian-566af.web.app
 
 ### 🔑 Demo Accounts
 
