@@ -11,6 +11,11 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.get("/", (req, res) => {
+  res.send("Server running successfully");
+});
+
+module.exports = app;
 
 app.get("/health", (req, res) => {
   const db = isDbConnected() ? "connected" : "disconnected";
